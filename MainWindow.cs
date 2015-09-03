@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Windows.Forms;
 
 namespace debugger
@@ -7,6 +8,8 @@ namespace debugger
     {
         public AssemblyView asmView = null;
         public RegisterView regView = null;
+        public ModulesView modView = null;
+        public ThreadsView thrdView = null;
 
         public MainWindow()
         {
@@ -19,15 +22,47 @@ namespace debugger
             NetHandler.DisconnectedEvent += NetHandler_DisconnectedEvent;
             NetHandler.PrelaunchEvent += NetHandler_PrelaunchEvent;
             NetHandler.BpHitEvent += NetHandler_BpHitEvent;
+            NetHandler.CoreSteppedEvent += NetHandler_CoreSteppedEvent;
+            NetHandler.PausedEvent += NetHandler_PausedEvent;
             NetHandler.StartListening();
 
             asmView = new AssemblyView();
             asmView.MdiParent = this;
-            asmView.Dock = DockStyle.Left;
-
+            asmView.FormClosing += MainWindow_FormClosing;
+            
             regView = new RegisterView();
             regView.MdiParent = this;
-            regView.Dock = DockStyle.Right;
+            regView.FormClosing += MainWindow_FormClosing;
+
+            modView = new ModulesView();
+            modView.MdiParent = this;
+            modView.FormClosing += MainWindow_FormClosing;
+
+            thrdView = new ThreadsView();
+            thrdView.MdiParent = this;
+            thrdView.FormClosing += MainWindow_FormClosing;
+
+            assemblyToolStripMenuItem.Checked = true;
+            registersToolStripMenuItem.Checked = true;
+            threadsToolStripMenuItem.Checked = true;
+
+            int parentWidth = this.ClientSize.Width - 4;
+            int parentHeight = this.ClientSize.Height - 60;
+
+            regView.Left = parentWidth - regView.Size.Width;
+            regView.Top = 0;
+            regView.Height = parentHeight / 3 * 2;
+
+            asmView.Left = 0;
+            asmView.Top = 0;
+            asmView.Width = parentWidth - regView.Width;
+            asmView.Height = parentHeight / 3 * 2;
+
+            thrdView.Left = 0;
+            thrdView.Top = asmView.Height;
+            thrdView.Width = asmView.Width;
+            thrdView.Height = parentHeight - asmView.Height;
+            
         }
 
         private void NetHandler_ConnectedEvent(object sender, ConnectedEventArgs e)
@@ -35,9 +70,6 @@ namespace debugger
             this.BeginInvoke((MethodInvoker)delegate
             {
                 statusLabel.Text = "Connected.";
-
-                asmView.Show();
-                regView.Show();
             });
         }
 
@@ -45,9 +77,6 @@ namespace debugger
         {
             this.BeginInvoke((MethodInvoker)delegate {
                 statusLabel.Text = "Disconnected.";
-
-                asmView.Hide();
-                regView.Hide();
             });
         }
 
@@ -66,14 +95,179 @@ namespace debugger
             });
         }
 
+        private static DebugThreadInfo getActiveThread(DebugThreadInfo[] threads, uint coreId)
+        {
+            for (var i = 0; i < threads.Length; ++i)
+            {
+                if (threads[i].curCoreId == coreId)
+                {
+                    return threads[i];
+                }
+            }
+            return null;
+        }
+
+        private DebugPauseInfo PauseInfo = null;
+        private DebugThreadInfo ActiveThread = null;
+
+        private void UpdatePauseInfo()
+        {
+            modView.UpdateData(PauseInfo.modules);
+            thrdView.UpdateData(PauseInfo.threads, ActiveThread);
+            asmView.UpdateData(PauseInfo.symbols, ActiveThread);
+            regView.UpdateData(ActiveThread);
+        }
+
+        private void UpdatePauseInfo(DebugPauseInfo pauseInfo, uint activeCore)
+        {
+            PauseInfo = pauseInfo;
+            ActiveThread = getActiveThread(pauseInfo.threads, activeCore);
+            UpdatePauseInfo();
+        }
+
+        public void SetActiveThreadIdx(int threadIdx)
+        {
+            ActiveThread = PauseInfo.threads[threadIdx];
+            UpdatePauseInfo();
+        }
+
         private void NetHandler_BpHitEvent(object sender, BpHitEventArgs e)
         {
             this.BeginInvoke((MethodInvoker)delegate {
                 statusLabel.Text = "Connected.  BpHit.";
 
-                // For now, just immediately resume...
-                NetHandler.SendResume();
+                UpdatePauseInfo(e.PauseInfo, e.coreId);
             });
         }
+
+        private void NetHandler_CoreSteppedEvent(object sender, CoreSteppedEventArgs e)
+        {
+            this.BeginInvoke((MethodInvoker)delegate {
+                statusLabel.Text = "Connected.  Core Stepped.";
+
+                UpdatePauseInfo(e.PauseInfo, e.coreId);
+            });
+        }
+
+        private void NetHandler_PausedEvent(object sender, PausedEventArgs e)
+        {
+            this.BeginInvoke((MethodInvoker)delegate {
+                statusLabel.Text = "Connected.  Paused.";
+
+                UpdatePauseInfo(e.PauseInfo, 1);
+            });
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void MainWindow_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.MdiFormClosing)
+            {
+                return;
+            }
+
+            if (sender == asmView)
+            {
+                assemblyToolStripMenuItem.Checked = false;
+                e.Cancel = true;
+            } else if (sender == regView)
+            {
+                registersToolStripMenuItem.Checked = false;
+                e.Cancel = true;
+            } else if (sender == modView)
+            {
+                modulesToolStripMenuItem.Checked = false;
+                e.Cancel = true;
+            } else if (sender == thrdView)
+            {
+                threadsToolStripMenuItem.Checked = false;
+                e.Cancel = true;
+            }
+        }
+
+        private void continueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetHandler.SendResume();
+        }
+
+        private void stepIntoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (ActiveThread.curCoreId >= 0)
+            {
+                NetHandler.SendStepCore((uint)ActiveThread.curCoreId);
+            }
+            else
+            {
+                MessageBox.Show("Cannot step current thread as it is not active on any core.");
+            }
+        }
+
+        private void assemblyToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (assemblyToolStripMenuItem.Checked)
+            {
+                asmView.Show();
+            }
+            else
+            {
+                asmView.Hide();
+            }
+        }
+
+        private void registersToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (assemblyToolStripMenuItem.Checked)
+            {
+                regView.Show();
+            }
+            else
+            {
+                regView.Hide();
+            }
+        }
+        
+        private void modulesToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (modulesToolStripMenuItem.Checked)
+            {
+                modView.Show();
+            }
+            else
+            {
+                modView.Hide();
+            }
+        }
+
+        private void threadsToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (threadsToolStripMenuItem.Checked)
+            {
+                thrdView.Show();
+            }
+            else
+            {
+                thrdView.Hide();
+            }
+        }
+
+        private void memoryToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void stackToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void breakAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetHandler.SendPause();
+        }
+
     }
 }

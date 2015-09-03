@@ -1,6 +1,6 @@
 ﻿namespace debugger
 {
-    partial class RegisterView
+    partial class ModulesView
     {
         /// <summary>
         /// Required designer variable.
@@ -28,24 +28,34 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.listBox = new System.Windows.Forms.ListBox();
             this.SuspendLayout();
             // 
-            // RegisterView
+            // listBox
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 11F);
+            this.listBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listBox.FormattingEnabled = true;
+            this.listBox.Location = new System.Drawing.Point(0, 0);
+            this.listBox.Name = "listBox";
+            this.listBox.Size = new System.Drawing.Size(586, 373);
+            this.listBox.TabIndex = 0;
+            // 
+            // ModulesView
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(294, 401);
-            this.DoubleBuffered = true;
-            this.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.ClientSize = new System.Drawing.Size(586, 373);
+            this.Controls.Add(this.listBox);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
-            this.Name = "RegisterView";
-            this.Text = "Registers";
-            this.Load += new System.EventHandler(this.RegisterView_Load);
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.RegisterView_Paint);
+            this.Name = "ModulesView";
+            this.Text = "Modules";
+            this.Load += new System.EventHandler(this.ModulesView_Load);
             this.ResumeLayout(false);
 
         }
 
         #endregion
+
+        private System.Windows.Forms.ListBox listBox;
     }
 }

@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace debugger
 {
@@ -17,7 +19,6 @@ namespace debugger
     {
         public string name;
         public uint entryPoint;
-        public DebugSymbolInfo[] symbols;
     };
 
     public class DebugThreadInfo
@@ -29,6 +30,8 @@ namespace debugger
 
         public uint cia;
         public uint[] gpr;
+        public uint lr;
+        public uint ctr;
         public uint crf;
     }
 
@@ -37,6 +40,7 @@ namespace debugger
         public DebugModuleInfo[] modules;
         public uint userModuleIdx;
         public DebugThreadInfo[] threads;
+        public DebugSymbolInfo[] symbols;
     }
 
     public class ConnectedEventArgs : EventArgs
@@ -62,8 +66,35 @@ namespace debugger
         public DebugPauseInfo PauseInfo;
     }
 
+    public class CoreSteppedEventArgs : EventArgs
+    {
+        public uint coreId;
+
+        public DebugPauseInfo PauseInfo;
+    }
+
+    public class PausedEventArgs : EventArgs
+    {
+        public DebugPauseInfo PauseInfo;
+    }
+
+
     class NetHandler
     {
+        const ushort PacketCmdPreLaunch = 1;
+        const ushort PacketCmdBpHit = 2;
+        const ushort PacketCmdPause = 3;
+        const ushort PacketCmdResume = 4;
+        const ushort PacketCmdAddBreakpoint = 5;
+        const ushort PacketCmdRemoveBreakpoint = 6;
+        const ushort PacketCmdReadMem = 7;
+        const ushort PacketCmdReadMemRes = 8;
+        const ushort PacketCmdDisasm = 9;
+        const ushort PacketCmdDisasmRes = 10;
+        const ushort PacketCmdStepCore = 11;
+        const ushort PacketCmdCoreStepped = 12;
+        const ushort PacketCmdPaused = 13;
+
         public class StateObject
         {
             // Listen socket.
@@ -79,6 +110,7 @@ namespace debugger
         }
 
         public static StateObject currentState = null;
+        public static bool currentlyPaused = false;
 
         public static void StartListening()
         {
@@ -255,13 +287,6 @@ namespace debugger
             }
         }
 
-        const ushort PacketCmdPreLaunch = 1;
-        const ushort PacketCmdBpHit = 2;
-        const ushort PacketCmdPause = 3;
-        const ushort PacketCmdResume = 4;
-        const ushort PacketCmdAddBreakpoint = 5;
-        const ushort PacketCmdRemoveBreakpoint = 6;
-
         private static string readString(BinaryReader rdr)
         {
             ulong strLen = rdr.ReadUInt64();
@@ -286,13 +311,6 @@ namespace debugger
             info.name = readString(rdr);
             info.entryPoint = rdr.ReadUInt32();
 
-            ulong numSymbols = rdr.ReadUInt64();
-            info.symbols = new DebugSymbolInfo[numSymbols];
-            for (ulong i = 0; i < numSymbols; ++i)
-            {
-                info.symbols[i] = readDebugSymbolInfo(rdr);
-            }
-
             return info;
         }
 
@@ -312,6 +330,8 @@ namespace debugger
             {
                 info.gpr[i] = rdr.ReadUInt32();
             }
+            info.lr = rdr.ReadUInt32();
+            info.ctr = rdr.ReadUInt32();
             info.crf = rdr.ReadUInt32();
 
             return info;
@@ -337,6 +357,13 @@ namespace debugger
                 info.threads[i] = readDebugThreadInfo(rdr);
             }
 
+            ulong numSymbols = rdr.ReadUInt64();
+            info.symbols = new DebugSymbolInfo[numSymbols];
+            for (ulong i = 0; i < numSymbols; ++i)
+            {
+                info.symbols[i] = readDebugSymbolInfo(rdr);
+            }
+
             return info;
         }
 
@@ -352,17 +379,76 @@ namespace debugger
 
             if (cmd == PacketCmdPreLaunch)
             {
+                ResetDataCache();
+                currentlyPaused = true;
+
                 var e = new PrelaunchEventArgs();
                 e.PauseInfo = readDebugPauseInfo(rdr);
                 PrelaunchEvent.Invoke(null, e);
             }
             else if (cmd == PacketCmdBpHit)
             {
+                ResetDataCache();
+                currentlyPaused = true;
+
                 var e = new BpHitEventArgs();
                 e.coreId = rdr.ReadUInt32();
                 e.userData = rdr.ReadUInt32();
                 e.PauseInfo = readDebugPauseInfo(rdr);
                 BpHitEvent.Invoke(null, e);
+            }
+            else if (cmd == PacketCmdCoreStepped)
+            {
+                ResetDataCache();
+                currentlyPaused = true;
+
+                var e = new CoreSteppedEventArgs();
+                e.coreId = rdr.ReadUInt32();
+                e.PauseInfo = readDebugPauseInfo(rdr);
+                CoreSteppedEvent.Invoke(null, e);
+            }
+            else if (cmd == PacketCmdPaused)
+            {
+                ResetDataCache();
+                currentlyPaused = true;
+
+                var e = new PausedEventArgs();
+                e.PauseInfo = readDebugPauseInfo(rdr);
+                PausedEvent.Invoke(null, e);
+            }
+            else if (cmd == PacketCmdReadMemRes)
+            {
+                var address = rdr.ReadUInt32();
+                var numBytes = rdr.ReadUInt64();
+                var bytes = rdr.ReadBytes((int)numBytes);
+
+                var pageIdx = address / GetMemoryPageSize();
+                var page = memDict[pageIdx];
+                if (page != null)
+                {
+                    page.data = bytes;
+                    page.waiters.ForEach((DoneNotif i) => { i(); });
+                    page.waiters.Clear();
+                }
+            }
+            else if (cmd == PacketCmdDisasmRes)
+            {
+                var address = rdr.ReadUInt32();
+                var numInstrs = rdr.ReadUInt64();
+                var instrs = new string[numInstrs];
+                for (var i = 0; i < (int)numInstrs; ++i)
+                {
+                    instrs[i] = readString(rdr);
+                }
+
+                var pageIdx = address / GetInstrPageSize();
+                var page = instrDict[pageIdx];
+                if (page != null)
+                {
+                    page.data = instrs;
+                    page.waiters.ForEach((DoneNotif i) => { i(); });
+                    page.waiters.Clear();
+                }
             }
             else
             {
@@ -432,11 +518,271 @@ namespace debugger
         public static void SendResume()
         {
             SendPacket(PacketCmdResume, 0, null);
+            currentlyPaused = false;
+        }
+    
+        public static void SendStepCore(uint coreId)
+        {
+            SendPacket(PacketCmdStepCore, 0, (BinaryWriter wrt) =>
+            {
+                wrt.Write(coreId);
+            });
+            currentlyPaused = false;
+        }
+
+        public delegate void DoneNotif();
+
+        private static void sendReadMem(uint address, uint size)
+        {
+            Debug.WriteLine("ReadMem {0:x08} {1}", address, size);
+            SendPacket(PacketCmdReadMem, 0, (BinaryWriter wrt) =>
+            {
+                wrt.Write(address);
+                wrt.Write(size);
+            });
+        }
+
+        private static void sendDisasm(uint address, uint numInstrs)
+        {
+            Debug.WriteLine("Disasm {0:x08} {1}", address, numInstrs);
+            SendPacket(PacketCmdDisasm, 0, (BinaryWriter wrt) =>
+            {
+                wrt.Write(address);
+                wrt.Write(numInstrs);
+            });
+        }
+
+        public static uint GetMemoryPageSize()
+        {
+            return 1024;
+        }
+
+        public static byte[] GetMemoryPage(uint pageIdx, DoneNotif notifFn)
+        {
+            if (!currentlyPaused)
+            {
+                // Don't allow reading while the game is running...
+                return null;
+            }
+
+            cacheMutex.WaitOne();
+            MemoryPage entry;
+            if (!memDict.TryGetValue(pageIdx, out entry))
+            {
+                entry = null;
+            }
+
+            if (entry == null)
+            {
+                var newPage = new MemoryPage();
+                newPage.pauseIdx = 0;
+                newPage.data = null;
+                newPage.waiters = new List<DoneNotif>();
+                memDict.Add(pageIdx, newPage);
+                entry = newPage;                
+            }
+
+            if (entry.pauseIdx < pauseIndex)
+            {
+                uint PAGE_SIZE = GetMemoryPageSize();
+                sendReadMem(pageIdx * PAGE_SIZE, PAGE_SIZE);
+                entry.pauseIdx = pauseIndex;
+
+                if (notifFn != null)
+                {
+                    entry.waiters.Add(notifFn);
+                }
+            }
+            
+            cacheMutex.ReleaseMutex();
+            return entry.data;
+        }
+
+        public static uint GetInstrPageSize()
+        {
+            return 256;
+        }
+
+        public static string[] GetInstrPage(uint pageIdx, DoneNotif notifFn)
+        {
+            if (!currentlyPaused)
+            {
+                // Don't allow reading while the game is running...
+                return null;
+            }
+
+            cacheMutex.WaitOne();
+            InstrPage entry;
+            if (!instrDict.TryGetValue(pageIdx, out entry))
+            {
+                entry = null;
+            }
+
+            if (entry == null)
+            {
+                var newPage = new InstrPage();
+                newPage.pauseIdx = 0;
+                newPage.data = null;
+                newPage.waiters = new List<DoneNotif>();
+                instrDict.Add(pageIdx, newPage);
+                entry = newPage;
+            }
+
+            if (entry.pauseIdx < pauseIndex)
+            {
+                uint PAGE_SIZE = GetInstrPageSize();
+                sendDisasm(pageIdx * PAGE_SIZE, PAGE_SIZE / 4);
+                entry.pauseIdx = pauseIndex;
+
+                if (notifFn != null)
+                {
+                    entry.waiters.Add(notifFn);
+                }
+            }
+
+            cacheMutex.ReleaseMutex();
+            return entry.data;
+        }
+
+        private static void ResetDataCache()
+        {
+            cacheMutex.WaitOne();
+            pauseIndex++;
+            cacheMutex.ReleaseMutex();
+        }
+
+        private static Mutex cacheMutex = new Mutex();
+        private static uint pauseIndex = 1;
+
+        private class MemoryPage
+        {
+            public uint pauseIdx;
+            public byte[] data;
+            public List<DoneNotif> waiters;
+        };
+        private static Dictionary<uint, MemoryPage> memDict = new Dictionary<uint, MemoryPage>();
+
+        private class InstrPage
+        {
+            public uint pauseIdx;
+            public string[] data;
+            public List<DoneNotif> waiters;
+        }
+        private static Dictionary<uint, InstrPage> instrDict = new Dictionary<uint, InstrPage>();
+
+        public static EmuMemoryReader GetMemoryReader(uint address, DoneNotif notifFn)
+        {
+            return new EmuMemoryReader(address, notifFn);
+        }
+
+        public static EmuInstrReader GetInstrReader(uint address, DoneNotif notifFn)
+        {
+            return new EmuInstrReader(address, notifFn);
+        }
+
+        public class EmuMemoryReader
+        {
+            public EmuMemoryReader(uint address, NetHandler.DoneNotif notifFn)
+            {
+                notifier = notifFn;
+                pageSize = NetHandler.GetMemoryPageSize();
+                currentAddress = address;
+                retrievePage(true);
+            }
+
+            private void retrievePage(bool force = false)
+            {
+                uint newPageIdx = currentAddress / pageSize;
+                if (!force && newPageIdx == currentPageIdx)
+                {
+                    return;
+                }
+
+                currentPage = NetHandler.GetMemoryPage(newPageIdx, notifier);
+                currentPageIdx = newPageIdx;
+            }
+
+            public bool GetUInt32(out uint value)
+            {
+                if (currentPage == null)
+                {
+                    value = 0;
+                    currentAddress += 4;
+                    retrievePage();
+                    return false;
+                }
+
+                int pageOffset = (int)(currentAddress - (currentPageIdx * pageSize));
+                Debug.Assert(pageOffset + 4 <= pageSize);
+
+                value = BitConverter.ToUInt32(currentPage, pageOffset);
+                currentAddress += 4;
+                retrievePage();
+
+                return true;
+            }
+
+            NetHandler.DoneNotif notifier;
+            uint pageSize;
+            uint currentPageIdx;
+            byte[] currentPage;
+            protected uint currentAddress;
+        }
+
+        public class EmuInstrReader
+        {
+            public EmuInstrReader(uint address, NetHandler.DoneNotif notifFn)
+            {
+                notifier = notifFn;
+                pageSize = NetHandler.GetInstrPageSize();
+                currentAddress = address;
+                retrievePage(true);
+            }
+
+            private void retrievePage(bool force = false)
+            {
+                uint newPageIdx = currentAddress / pageSize;
+                if (!force && newPageIdx == currentPageIdx)
+                {
+                    return;
+                }
+
+                currentPage = NetHandler.GetInstrPage(newPageIdx, notifier);
+                currentPageIdx = newPageIdx;
+            }
+
+            public bool GetInstr(out string value)
+            {
+                if (currentPage == null)
+                {
+                    value = "";
+                    currentAddress += 4;
+                    retrievePage();
+                    return false;
+                }
+
+                int pageOffset = (int)(currentAddress - (currentPageIdx * pageSize));
+                Debug.Assert(pageOffset + 4 <= pageSize);
+
+                value = currentPage[pageOffset / 4];
+                currentAddress += 4;
+                retrievePage();
+
+                return true;
+            }
+
+            NetHandler.DoneNotif notifier;
+            uint pageSize;
+            uint currentPageIdx;
+            string[] currentPage;
+            protected uint currentAddress;
         }
 
         public static event EventHandler<ConnectedEventArgs> ConnectedEvent;
         public static event EventHandler<DisconnectedEventArgs> DisconnectedEvent;
         public static event EventHandler<PrelaunchEventArgs> PrelaunchEvent;
         public static event EventHandler<BpHitEventArgs> BpHitEvent;
+        public static event EventHandler<CoreSteppedEventArgs> CoreSteppedEvent;
+        public static event EventHandler<PausedEventArgs> PausedEvent;
     }
 }

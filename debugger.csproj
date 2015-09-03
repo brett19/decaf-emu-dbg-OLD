@@ -57,6 +57,12 @@
     <Compile Include="MainWindow.Designer.cs">
       <DependentUpon>MainWindow.cs</DependentUpon>
     </Compile>
+    <Compile Include="ModulesView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ModulesView.Designer.cs">
+      <DependentUpon>ModulesView.cs</DependentUpon>
+    </Compile>
     <Compile Include="NetHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -66,11 +72,20 @@
     <Compile Include="RegisterView.Designer.cs">
       <DependentUpon>RegisterView.cs</DependentUpon>
     </Compile>
+    <Compile Include="ThreadsView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ThreadsView.Designer.cs">
+      <DependentUpon>ThreadsView.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="AssemblyView.resx">
       <DependentUpon>AssemblyView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainWindow.resx">
       <DependentUpon>MainWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ModulesView.resx">
+      <DependentUpon>ModulesView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -83,6 +98,9 @@
     </Compile>
     <EmbeddedResource Include="RegisterView.resx">
       <DependentUpon>RegisterView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ThreadsView.resx">
+      <DependentUpon>ThreadsView.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
