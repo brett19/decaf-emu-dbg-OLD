@@ -72,6 +72,12 @@
     <Compile Include="RegisterView.Designer.cs">
       <DependentUpon>RegisterView.cs</DependentUpon>
     </Compile>
+    <Compile Include="StackView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="StackView.Designer.cs">
+      <DependentUpon>StackView.cs</DependentUpon>
+    </Compile>
     <Compile Include="ThreadsView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -98,6 +104,9 @@
     </Compile>
     <EmbeddedResource Include="RegisterView.resx">
       <DependentUpon>RegisterView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StackView.resx">
+      <DependentUpon>StackView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ThreadsView.resx">
       <DependentUpon>ThreadsView.cs</DependentUpon>

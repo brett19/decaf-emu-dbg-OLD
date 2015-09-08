@@ -35,6 +35,8 @@
             this.colName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colCore = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colAddress = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colEp = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colStack = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.SuspendLayout();
             // 
             // listView
@@ -44,7 +46,9 @@
             this.colId,
             this.colName,
             this.colCore,
-            this.colAddress});
+            this.colAddress,
+            this.colEp,
+            this.colStack});
             this.listView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listView.FullRowSelect = true;
             this.listView.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
@@ -83,6 +87,16 @@
             this.colAddress.Text = "Location";
             this.colAddress.Width = 80;
             // 
+            // colEp
+            // 
+            this.colEp.Text = "Entry";
+            this.colEp.Width = 80;
+            // 
+            // colStack
+            // 
+            this.colStack.Text = "Stack";
+            this.colStack.Width = 140;
+            // 
             // ThreadsView
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -105,5 +119,7 @@
         private System.Windows.Forms.ColumnHeader colName;
         private System.Windows.Forms.ColumnHeader colAddress;
         private System.Windows.Forms.ColumnHeader colCore;
+        private System.Windows.Forms.ColumnHeader colEp;
+        private System.Windows.Forms.ColumnHeader colStack;
     }
 }

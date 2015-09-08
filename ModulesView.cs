@@ -22,15 +22,19 @@ namespace debugger
 
         }
 
-        public void UpdateData(DebugModuleInfo[] info)
+        public void UpdateData(DebugPauseInfo pauseInfo, DebugThreadInfo activeThread)
         {
             listBox.Items.Clear();
-            for (int i = 0; i < info.Length; ++i)
+            if (pauseInfo != null)
             {
-                string lineText = String.Format("{0}  EP@{1:X8}",
-                    info[i].name,
-                    info[i].entryPoint);
-                listBox.Items.Add(lineText);
+                var info = pauseInfo.modules;
+                for (int i = 0; i < info.Length; ++i)
+                {
+                    string lineText = String.Format("{0}  EP@{1:X8}",
+                        info[i].name,
+                        info[i].entryPoint);
+                    listBox.Items.Add(lineText);
+                }
             }
         }
     }

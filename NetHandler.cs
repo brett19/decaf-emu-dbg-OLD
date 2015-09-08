@@ -10,6 +10,7 @@ namespace debugger
 {
     public class DebugSymbolInfo
     {
+        public uint moduleIdx;
         public string name;
         public uint address;
         public uint type;
@@ -24,9 +25,15 @@ namespace debugger
     public class DebugThreadInfo
     {
         public string name;
+        public uint id;
+
         public int curCoreId;
         public uint attribs;
         public uint state;
+
+        public uint entryPoint;
+        public uint stackStart;
+        public uint stackEnd;
 
         public uint cia;
         public uint[] gpr;
@@ -41,6 +48,18 @@ namespace debugger
         public uint userModuleIdx;
         public DebugThreadInfo[] threads;
         public DebugSymbolInfo[] symbols;
+    }
+
+    public struct DebugTraceEntryField
+    {
+        public uint type;
+        public byte[] data;
+    }
+
+    public class DebugTraceEntry
+    {
+        public uint cia;
+        public DebugTraceEntryField[] fields;
     }
 
     public class ConnectedEventArgs : EventArgs
@@ -78,6 +97,12 @@ namespace debugger
         public DebugPauseInfo PauseInfo;
     }
 
+    public class GetTraceEventArgs : EventArgs
+    {
+        public uint ThreadId;
+
+        public DebugTraceEntry[] Info;
+    }
 
     class NetHandler
     {
@@ -94,6 +119,8 @@ namespace debugger
         const ushort PacketCmdStepCore = 11;
         const ushort PacketCmdCoreStepped = 12;
         const ushort PacketCmdPaused = 13;
+        const ushort PacketCmdGetTrace = 14;
+        const ushort PacketCmdGetTraceRes = 15;
 
         public class StateObject
         {
@@ -297,6 +324,7 @@ namespace debugger
         {
             var info = new DebugSymbolInfo();
 
+            info.moduleIdx = rdr.ReadUInt32();
             info.name = readString(rdr);
             info.address = rdr.ReadUInt32();
             info.type = rdr.ReadUInt32();
@@ -319,9 +347,15 @@ namespace debugger
             var info = new DebugThreadInfo();
 
             info.name = readString(rdr);
+            info.id = rdr.ReadUInt32();
+
             info.curCoreId = rdr.ReadInt32();
             info.attribs = rdr.ReadUInt32();
             info.state = rdr.ReadUInt32();
+
+            info.entryPoint = rdr.ReadUInt32();
+            info.stackStart = rdr.ReadUInt32();
+            info.stackEnd = rdr.ReadUInt32();
 
             info.cia = rdr.ReadUInt32();
 
@@ -362,6 +396,21 @@ namespace debugger
             for (ulong i = 0; i < numSymbols; ++i)
             {
                 info.symbols[i] = readDebugSymbolInfo(rdr);
+            }
+
+            return info;
+        }
+
+        public static DebugTraceEntry readDebugTraceEntry(BinaryReader rdr)
+        {
+            DebugTraceEntry info = new DebugTraceEntry();
+
+            info.cia = rdr.ReadUInt32();
+            info.fields = new DebugTraceEntryField[4];
+            for (var i = 0; i < 4; ++i)
+            {
+                info.fields[i].type = rdr.ReadUInt32();
+                info.fields[i].data = rdr.ReadBytes(8);
             }
 
             return info;
@@ -450,6 +499,21 @@ namespace debugger
                     page.waiters.Clear();
                 }
             }
+            else if (cmd == PacketCmdGetTraceRes)
+            {
+                var e = new GetTraceEventArgs();
+
+                e.ThreadId = rdr.ReadUInt32();
+
+                var numTraces = rdr.ReadUInt64();
+                e.Info = new DebugTraceEntry[numTraces];
+                for (ulong i = 0; i < numTraces; ++i)
+                {
+                    e.Info[i] = readDebugTraceEntry(rdr);
+                }
+
+                GetTraceEvent.Invoke(null, e);
+            }
             else
             {
                 Debug.WriteLine(data);
@@ -510,6 +574,14 @@ namespace debugger
             });
         }
 
+        public static void SendRemoveBreakpoint(uint address)
+        {
+            SendPacket(PacketCmdRemoveBreakpoint, 0, (BinaryWriter wrt) =>
+            {
+                wrt.Write(address);
+            });
+        }
+
         public static void SendPause()
         {
             SendPacket(PacketCmdPause, 0, null);
@@ -528,6 +600,14 @@ namespace debugger
                 wrt.Write(coreId);
             });
             currentlyPaused = false;
+        }
+
+        public static void SendGetTrace(uint threadId)
+        {
+            SendPacket(PacketCmdGetTrace, 0, (BinaryWriter wrt) =>
+            {
+                wrt.Write(threadId);
+            });
         }
 
         public delegate void DoneNotif();
@@ -715,7 +795,11 @@ namespace debugger
                 int pageOffset = (int)(currentAddress - (currentPageIdx * pageSize));
                 Debug.Assert(pageOffset + 4 <= pageSize);
 
-                value = BitConverter.ToUInt32(currentPage, pageOffset);
+                value =
+                    (uint)currentPage[pageOffset + 0] << 24 |
+                    (uint)currentPage[pageOffset + 1] << 16 |
+                    (uint)currentPage[pageOffset + 2] << 8 |
+                    (uint)currentPage[pageOffset + 3];
                 currentAddress += 4;
                 retrievePage();
 
@@ -784,5 +868,6 @@ namespace debugger
         public static event EventHandler<BpHitEventArgs> BpHitEvent;
         public static event EventHandler<CoreSteppedEventArgs> CoreSteppedEvent;
         public static event EventHandler<PausedEventArgs> PausedEvent;
+        public static event EventHandler<GetTraceEventArgs> GetTraceEvent;
     }
 }

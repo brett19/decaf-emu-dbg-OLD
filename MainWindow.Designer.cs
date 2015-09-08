@@ -45,6 +45,9 @@
             this.threadsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.memoryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stackToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.stepBackToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.backtraceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -98,7 +101,10 @@
             this.breakAllToolStripMenuItem,
             this.continueToolStripMenuItem,
             this.stepOverToolStripMenuItem,
-            this.stepIntoToolStripMenuItem});
+            this.stepIntoToolStripMenuItem,
+            this.toolStripSeparator1,
+            this.backtraceToolStripMenuItem,
+            this.stepBackToolStripMenuItem});
             this.debugToolStripMenuItem.Name = "debugToolStripMenuItem";
             this.debugToolStripMenuItem.Size = new System.Drawing.Size(54, 20);
             this.debugToolStripMenuItem.Text = "Debug";
@@ -106,7 +112,7 @@
             // breakAllToolStripMenuItem
             // 
             this.breakAllToolStripMenuItem.Name = "breakAllToolStripMenuItem";
-            this.breakAllToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.breakAllToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.breakAllToolStripMenuItem.Text = "Break All";
             this.breakAllToolStripMenuItem.Click += new System.EventHandler(this.breakAllToolStripMenuItem_Click);
             // 
@@ -114,7 +120,7 @@
             // 
             this.continueToolStripMenuItem.Name = "continueToolStripMenuItem";
             this.continueToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.continueToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.continueToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.continueToolStripMenuItem.Text = "Continue";
             this.continueToolStripMenuItem.Click += new System.EventHandler(this.continueToolStripMenuItem_Click);
             // 
@@ -123,14 +129,14 @@
             this.stepOverToolStripMenuItem.Enabled = false;
             this.stepOverToolStripMenuItem.Name = "stepOverToolStripMenuItem";
             this.stepOverToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F10;
-            this.stepOverToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.stepOverToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.stepOverToolStripMenuItem.Text = "Step Over";
             // 
             // stepIntoToolStripMenuItem
             // 
             this.stepIntoToolStripMenuItem.Name = "stepIntoToolStripMenuItem";
             this.stepIntoToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F11;
-            this.stepIntoToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.stepIntoToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.stepIntoToolStripMenuItem.Text = "Step Into";
             this.stepIntoToolStripMenuItem.Click += new System.EventHandler(this.stepIntoToolStripMenuItem_Click);
             // 
@@ -195,6 +201,26 @@
             this.stackToolStripMenuItem.Text = "Stack";
             this.stackToolStripMenuItem.CheckedChanged += new System.EventHandler(this.stackToolStripMenuItem_CheckedChanged);
             // 
+            // stepBackToolStripMenuItem
+            // 
+            this.stepBackToolStripMenuItem.Enabled = false;
+            this.stepBackToolStripMenuItem.Name = "stepBackToolStripMenuItem";
+            this.stepBackToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F9;
+            this.stepBackToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.stepBackToolStripMenuItem.Text = "Step Back";
+            // 
+            // backtraceToolStripMenuItem
+            // 
+            this.backtraceToolStripMenuItem.Name = "backtraceToolStripMenuItem";
+            this.backtraceToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.backtraceToolStripMenuItem.Text = "Backtrace";
+            this.backtraceToolStripMenuItem.Click += new System.EventHandler(this.backtraceToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -206,7 +232,6 @@
             this.Location = new System.Drawing.Point(-1400, 0);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainWindow";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "WiiU-Emu Debugger";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainWindow_FormClosing);
             this.Load += new System.EventHandler(this.MainWindow_Load);
@@ -238,5 +263,8 @@
         private System.Windows.Forms.ToolStripMenuItem threadsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem memoryToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem stackToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem backtraceToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem stepBackToolStripMenuItem;
     }
 }

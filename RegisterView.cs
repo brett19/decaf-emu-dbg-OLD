@@ -25,10 +25,10 @@ namespace debugger
         private DebugThreadInfo info = null;
         private DebugThreadInfo oldInfo = null;
 
-        public void UpdateData(DebugThreadInfo tinfo)
+        public void UpdateData(DebugPauseInfo pauseInfo, DebugThreadInfo activeThread)
         {
             oldInfo = info;
-            info = tinfo;
+            info = activeThread;
             this.Invalidate();
         }
 

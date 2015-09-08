@@ -10,6 +10,7 @@ namespace debugger
         public RegisterView regView = null;
         public ModulesView modView = null;
         public ThreadsView thrdView = null;
+        public StackView stackView = null;
 
         public MainWindow()
         {
@@ -24,6 +25,7 @@ namespace debugger
             NetHandler.BpHitEvent += NetHandler_BpHitEvent;
             NetHandler.CoreSteppedEvent += NetHandler_CoreSteppedEvent;
             NetHandler.PausedEvent += NetHandler_PausedEvent;
+            NetHandler.GetTraceEvent += NetHandler_GetTraceEvent;
             NetHandler.StartListening();
 
             asmView = new AssemblyView();
@@ -42,9 +44,14 @@ namespace debugger
             thrdView.MdiParent = this;
             thrdView.FormClosing += MainWindow_FormClosing;
 
+            stackView = new StackView();
+            stackView.MdiParent = this;
+            stackView.FormClosing += MainWindow_FormClosing;
+
             assemblyToolStripMenuItem.Checked = true;
             registersToolStripMenuItem.Checked = true;
             threadsToolStripMenuItem.Checked = true;
+            stackToolStripMenuItem.Checked = true;
 
             int parentWidth = this.ClientSize.Width - 4;
             int parentHeight = this.ClientSize.Height - 60;
@@ -62,7 +69,16 @@ namespace debugger
             thrdView.Top = asmView.Height;
             thrdView.Width = asmView.Width;
             thrdView.Height = parentHeight - asmView.Height;
-            
+
+            stackView.Left = regView.Left;
+            stackView.Top = thrdView.Top;
+            stackView.Width = regView.Width;
+            stackView.Height = thrdView.Height;
+        }
+
+        private void NetHandler_GetTraceEvent(object sender, GetTraceEventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         private void NetHandler_ConnectedEvent(object sender, ConnectedEventArgs e)
@@ -77,6 +93,8 @@ namespace debugger
         {
             this.BeginInvoke((MethodInvoker)delegate {
                 statusLabel.Text = "Disconnected.";
+
+                UpdatePauseInfo(null);
             });
         }
 
@@ -110,18 +128,29 @@ namespace debugger
         private DebugPauseInfo PauseInfo = null;
         private DebugThreadInfo ActiveThread = null;
 
+        private bool Tracing = false;
+        private DebugThreadInfo TraceActiveThread = null;
+
         private void UpdatePauseInfo()
         {
-            modView.UpdateData(PauseInfo.modules);
-            thrdView.UpdateData(PauseInfo.threads, ActiveThread);
-            asmView.UpdateData(PauseInfo.symbols, ActiveThread);
-            regView.UpdateData(ActiveThread);
+            modView.UpdateData(PauseInfo, ActiveThread);
+            thrdView.UpdateData(PauseInfo, ActiveThread);
+            asmView.UpdateData(PauseInfo, ActiveThread);
+            regView.UpdateData(PauseInfo, ActiveThread);
+            stackView.UpdateData(PauseInfo, ActiveThread);
         }
 
-        private void UpdatePauseInfo(DebugPauseInfo pauseInfo, uint activeCore)
+        private void UpdatePauseInfo(DebugPauseInfo pauseInfo, uint activeCore = 1)
         {
             PauseInfo = pauseInfo;
-            ActiveThread = getActiveThread(pauseInfo.threads, activeCore);
+            if (pauseInfo != null)
+            {
+                ActiveThread = getActiveThread(pauseInfo.threads, activeCore);
+            } else
+            {
+                ActiveThread = null;
+            }
+            
             UpdatePauseInfo();
         }
 
@@ -154,7 +183,7 @@ namespace debugger
             this.BeginInvoke((MethodInvoker)delegate {
                 statusLabel.Text = "Connected.  Paused.";
 
-                UpdatePauseInfo(e.PauseInfo, 1);
+                UpdatePauseInfo(e.PauseInfo);
             });
         }
 
@@ -261,7 +290,14 @@ namespace debugger
 
         private void stackToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-
+            if (stackToolStripMenuItem.Checked)
+            {
+                stackView.Show();
+            }
+            else
+            {
+                stackView.Hide();
+            }
         }
 
         private void breakAllToolStripMenuItem_Click(object sender, EventArgs e)
@@ -269,5 +305,12 @@ namespace debugger
             NetHandler.SendPause();
         }
 
+        private void backtraceToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (ActiveThread != null)
+            {
+                NetHandler.SendGetTrace(ActiveThread.id);
+            }
+        }
     }
 }
