@@ -76,9 +76,83 @@ namespace debugger
             stackView.Height = thrdView.Height;
         }
 
+        private DebugTraceEntry[] TraceEntries = null;
+        private int TraceEntryIdx = 0;
+
         private void NetHandler_GetTraceEvent(object sender, GetTraceEventArgs e)
         {
-            throw new NotImplementedException();
+            this.BeginInvoke((MethodInvoker)delegate {
+                stepBackToolStripMenuItem.Enabled = true;
+                stepForwardToolStripMenuItem.Enabled = true;
+
+                TraceEntries = e.Info;
+                TraceEntryIdx = 0;
+
+                Tracing = true;
+                TraceActiveThread = ActiveThread.Clone();
+                applyTraceFields(TraceEntries[TraceEntryIdx]);
+            });
+        }
+
+        private void stepTraceData(int traceIdx)
+        {
+            if (traceIdx == TraceEntryIdx)
+            {
+                // Already here, do nothing
+                return;
+            } else if (traceIdx > TraceEntryIdx)
+            {
+                // Stepping Backwards, we copy the TraceThread for RegView update tracking
+                TraceActiveThread = TraceActiveThread.Clone();
+                for (var i = TraceEntryIdx + 1; i <= traceIdx; ++i)
+                {
+                    applyTraceFields(TraceEntries[i]);
+                }
+                TraceEntryIdx = traceIdx;
+            }
+            else if (traceIdx < TraceEntryIdx)
+            {
+                // Stepping 'forward', need to rescan
+                TraceActiveThread = ActiveThread.Clone();
+                for (var i = 0; i <= traceIdx; ++i)
+                {
+                    applyTraceFields(TraceEntries[i]);
+                }
+                TraceEntryIdx = traceIdx;
+            }
+
+            UpdatePauseInfo();
+        }
+
+        private void applyTraceFields(DebugTraceEntry trace)
+        {
+            foreach(DebugTraceEntryField field in trace.fields)
+            {
+                TraceActiveThread.ApplyTraceData(field.type, field.data);
+            }
+            TraceActiveThread.cia = trace.cia;
+        }
+
+        private void stepBackToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (TraceEntryIdx < TraceEntries.Length - 1)
+            {
+                stepTraceData(TraceEntryIdx + 1);
+            } else
+            {
+                statusLabel.Text = "No more backtrace entries.";
+            }
+        }
+
+        private void stepForwardToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (TraceEntryIdx > 0)
+            {
+                stepTraceData(TraceEntryIdx - 1);
+            } else
+            {
+                statusLabel.Text = "No more backtrace entries.";
+            }
         }
 
         private void NetHandler_ConnectedEvent(object sender, ConnectedEventArgs e)
@@ -133,11 +207,21 @@ namespace debugger
 
         private void UpdatePauseInfo()
         {
-            modView.UpdateData(PauseInfo, ActiveThread);
-            thrdView.UpdateData(PauseInfo, ActiveThread);
-            asmView.UpdateData(PauseInfo, ActiveThread);
-            regView.UpdateData(PauseInfo, ActiveThread);
-            stackView.UpdateData(PauseInfo, ActiveThread);
+            if (Tracing)
+            {
+                modView.Enabled = false;
+                thrdView.Enabled = false;
+                asmView.UpdateData(PauseInfo, TraceActiveThread);
+                regView.UpdateData(PauseInfo, TraceActiveThread);
+                stackView.Enabled = false;
+            } else
+            {
+                modView.UpdateData(PauseInfo, ActiveThread);
+                thrdView.UpdateData(PauseInfo, ActiveThread);
+                asmView.UpdateData(PauseInfo, ActiveThread);
+                regView.UpdateData(PauseInfo, ActiveThread);
+                stackView.UpdateData(PauseInfo, ActiveThread);
+            }
         }
 
         private void UpdatePauseInfo(DebugPauseInfo pauseInfo, uint activeCore = 1)
@@ -312,5 +396,7 @@ namespace debugger
                 NetHandler.SendGetTrace(ActiveThread.id);
             }
         }
+
+
     }
 }

@@ -38,6 +38,9 @@
             this.continueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stepOverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stepIntoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.backtraceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.stepBackToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.windowsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.assemblyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.registersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -45,9 +48,7 @@
             this.threadsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.memoryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stackToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.stepBackToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.backtraceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.stepForwardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -104,7 +105,8 @@
             this.stepIntoToolStripMenuItem,
             this.toolStripSeparator1,
             this.backtraceToolStripMenuItem,
-            this.stepBackToolStripMenuItem});
+            this.stepBackToolStripMenuItem,
+            this.stepForwardToolStripMenuItem});
             this.debugToolStripMenuItem.Name = "debugToolStripMenuItem";
             this.debugToolStripMenuItem.Size = new System.Drawing.Size(54, 20);
             this.debugToolStripMenuItem.Text = "Debug";
@@ -112,7 +114,7 @@
             // breakAllToolStripMenuItem
             // 
             this.breakAllToolStripMenuItem.Name = "breakAllToolStripMenuItem";
-            this.breakAllToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.breakAllToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.breakAllToolStripMenuItem.Text = "Break All";
             this.breakAllToolStripMenuItem.Click += new System.EventHandler(this.breakAllToolStripMenuItem_Click);
             // 
@@ -120,7 +122,7 @@
             // 
             this.continueToolStripMenuItem.Name = "continueToolStripMenuItem";
             this.continueToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.continueToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.continueToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.continueToolStripMenuItem.Text = "Continue";
             this.continueToolStripMenuItem.Click += new System.EventHandler(this.continueToolStripMenuItem_Click);
             // 
@@ -129,16 +131,37 @@
             this.stepOverToolStripMenuItem.Enabled = false;
             this.stepOverToolStripMenuItem.Name = "stepOverToolStripMenuItem";
             this.stepOverToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F10;
-            this.stepOverToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.stepOverToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.stepOverToolStripMenuItem.Text = "Step Over";
             // 
             // stepIntoToolStripMenuItem
             // 
             this.stepIntoToolStripMenuItem.Name = "stepIntoToolStripMenuItem";
             this.stepIntoToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F11;
-            this.stepIntoToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.stepIntoToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.stepIntoToolStripMenuItem.Text = "Step Into";
             this.stepIntoToolStripMenuItem.Click += new System.EventHandler(this.stepIntoToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
+            // 
+            // backtraceToolStripMenuItem
+            // 
+            this.backtraceToolStripMenuItem.Name = "backtraceToolStripMenuItem";
+            this.backtraceToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.backtraceToolStripMenuItem.Text = "Backtrace";
+            this.backtraceToolStripMenuItem.Click += new System.EventHandler(this.backtraceToolStripMenuItem_Click);
+            // 
+            // stepBackToolStripMenuItem
+            // 
+            this.stepBackToolStripMenuItem.Enabled = false;
+            this.stepBackToolStripMenuItem.Name = "stepBackToolStripMenuItem";
+            this.stepBackToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F8;
+            this.stepBackToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.stepBackToolStripMenuItem.Text = "Step Back";
+            this.stepBackToolStripMenuItem.Click += new System.EventHandler(this.stepBackToolStripMenuItem_Click);
             // 
             // windowsToolStripMenuItem
             // 
@@ -201,25 +224,14 @@
             this.stackToolStripMenuItem.Text = "Stack";
             this.stackToolStripMenuItem.CheckedChanged += new System.EventHandler(this.stackToolStripMenuItem_CheckedChanged);
             // 
-            // stepBackToolStripMenuItem
+            // stepForwardToolStripMenuItem
             // 
-            this.stepBackToolStripMenuItem.Enabled = false;
-            this.stepBackToolStripMenuItem.Name = "stepBackToolStripMenuItem";
-            this.stepBackToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F9;
-            this.stepBackToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.stepBackToolStripMenuItem.Text = "Step Back";
-            // 
-            // backtraceToolStripMenuItem
-            // 
-            this.backtraceToolStripMenuItem.Name = "backtraceToolStripMenuItem";
-            this.backtraceToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.backtraceToolStripMenuItem.Text = "Backtrace";
-            this.backtraceToolStripMenuItem.Click += new System.EventHandler(this.backtraceToolStripMenuItem_Click);
-            // 
-            // toolStripSeparator1
-            // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
+            this.stepForwardToolStripMenuItem.Enabled = false;
+            this.stepForwardToolStripMenuItem.Name = "stepForwardToolStripMenuItem";
+            this.stepForwardToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F9;
+            this.stepForwardToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.stepForwardToolStripMenuItem.Text = "Step Forward";
+            this.stepForwardToolStripMenuItem.Click += new System.EventHandler(this.stepForwardToolStripMenuItem_Click);
             // 
             // MainWindow
             // 
@@ -266,5 +278,6 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem backtraceToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem stepBackToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem stepForwardToolStripMenuItem;
     }
 }

@@ -40,6 +40,69 @@ namespace debugger
         public uint lr;
         public uint ctr;
         public uint crf;
+
+        public DebugThreadInfo Clone()
+        {
+            DebugThreadInfo n = new DebugThreadInfo();
+
+            n.name = name;
+            n.id = id;
+
+            n.curCoreId = curCoreId;
+            n.attribs = attribs;
+            n.state = state;
+
+            n.entryPoint = entryPoint;
+            n.stackStart = stackStart;
+            n.stackEnd = stackEnd;
+
+            n.cia = cia;
+            n.gpr = new uint[32];
+            for (var i = 0; i < 32; ++i)
+            {
+                n.gpr[i] = gpr[i];
+            }
+            n.lr = lr;
+            n.ctr = ctr;
+            n.crf = crf;
+
+            return n;
+        }
+
+        public void ApplyTraceData(StateField type, byte[] data)
+        {
+            if (type >= StateField.GPR0 && type <= StateField.GPR31)
+            {
+                gpr[type - StateField.GPR] = BitConverter.ToUInt32(data, 0);
+            }
+            else if (type >= StateField.FPR0 && type <= StateField.FPR31)
+            {
+                // TODO: Implement me
+            } else if (type >= StateField.GQR0 && type <= StateField.GQR7)
+            {
+                // TODO: Implement me
+            } else if (type == StateField.CR)
+            {
+                crf = BitConverter.ToUInt32(data, 0);
+            } else if (type == StateField.XER)
+            {
+                // TODO: Implement me
+            }
+            else if (type == StateField.LR)
+            {
+                lr = BitConverter.ToUInt32(data, 0);
+            } else if (type == StateField.CTR)
+            {
+                ctr = BitConverter.ToUInt32(data, 0);
+            } else if (type == StateField.FPSCR)
+            {
+                // TODO: Implement me
+            }
+            else
+            {
+                Debug.Assert(false);
+            }
+        }
     }
 
     public class DebugPauseInfo
@@ -50,9 +113,31 @@ namespace debugger
         public DebugSymbolInfo[] symbols;
     }
 
+    public enum StateField : uint
+    {
+        Invalid = 0,
+        GPR,
+        GPR0 = GPR,
+        GPR31 = GPR + 31,
+        FPR,
+        FPR0 = FPR,
+        FPR31 = FPR + 31,
+        GQR,
+        GQR0 = GQR,
+        GQR7 = GQR + 7,
+        CR,
+        XER,
+        LR,
+        CTR,
+        FPSCR,
+        Reserve,
+        ReserveAddress,
+        Max,
+    }
+
     public struct DebugTraceEntryField
     {
-        public uint type;
+        public StateField type;
         public byte[] data;
     }
 
@@ -106,21 +191,24 @@ namespace debugger
 
     class NetHandler
     {
-        const ushort PacketCmdPreLaunch = 1;
-        const ushort PacketCmdBpHit = 2;
-        const ushort PacketCmdPause = 3;
-        const ushort PacketCmdResume = 4;
-        const ushort PacketCmdAddBreakpoint = 5;
-        const ushort PacketCmdRemoveBreakpoint = 6;
-        const ushort PacketCmdReadMem = 7;
-        const ushort PacketCmdReadMemRes = 8;
-        const ushort PacketCmdDisasm = 9;
-        const ushort PacketCmdDisasmRes = 10;
-        const ushort PacketCmdStepCore = 11;
-        const ushort PacketCmdCoreStepped = 12;
-        const ushort PacketCmdPaused = 13;
-        const ushort PacketCmdGetTrace = 14;
-        const ushort PacketCmdGetTraceRes = 15;
+        public enum PacketCmd : ushort
+        {
+            PreLaunch = 1,
+            BpHit = 2,
+            Pause = 3,
+            Resume = 4,
+            AddBreakpoint = 5,
+            RemoveBreakpoint = 6,
+            ReadMem = 7,
+            ReadMemRes = 8,
+            Disasm = 9,
+            DisasmRes = 10,
+            StepCore = 11,
+            CoreStepped = 12,
+            Paused = 13,
+            GetTrace = 14,
+            GetTraceRes = 15,
+        }
 
         public class StateObject
         {
@@ -406,11 +494,13 @@ namespace debugger
             DebugTraceEntry info = new DebugTraceEntry();
 
             info.cia = rdr.ReadUInt32();
-            info.fields = new DebugTraceEntryField[4];
-            for (var i = 0; i < 4; ++i)
+
+            ulong numFields = rdr.ReadUInt64();
+            info.fields = new DebugTraceEntryField[numFields];
+            for (ulong i = 0; i < numFields; ++i)
             {
-                info.fields[i].type = rdr.ReadUInt32();
-                info.fields[i].data = rdr.ReadBytes(8);
+                info.fields[i].type = (StateField)rdr.ReadUInt32();
+                info.fields[i].data = rdr.ReadBytes(16);
             }
 
             return info;
@@ -423,10 +513,10 @@ namespace debugger
             BinaryReader rdr = new BinaryReader(new MemoryStream(data));
 
             var size = rdr.ReadUInt32();
-            var cmd = rdr.ReadUInt16();
+            var cmd = (PacketCmd)rdr.ReadUInt16();
             var reqId = rdr.ReadUInt16();
 
-            if (cmd == PacketCmdPreLaunch)
+            if (cmd == PacketCmd.PreLaunch)
             {
                 ResetDataCache();
                 currentlyPaused = true;
@@ -435,7 +525,7 @@ namespace debugger
                 e.PauseInfo = readDebugPauseInfo(rdr);
                 PrelaunchEvent.Invoke(null, e);
             }
-            else if (cmd == PacketCmdBpHit)
+            else if (cmd == PacketCmd.BpHit)
             {
                 ResetDataCache();
                 currentlyPaused = true;
@@ -446,7 +536,7 @@ namespace debugger
                 e.PauseInfo = readDebugPauseInfo(rdr);
                 BpHitEvent.Invoke(null, e);
             }
-            else if (cmd == PacketCmdCoreStepped)
+            else if (cmd == PacketCmd.CoreStepped)
             {
                 ResetDataCache();
                 currentlyPaused = true;
@@ -456,7 +546,7 @@ namespace debugger
                 e.PauseInfo = readDebugPauseInfo(rdr);
                 CoreSteppedEvent.Invoke(null, e);
             }
-            else if (cmd == PacketCmdPaused)
+            else if (cmd == PacketCmd.Paused)
             {
                 ResetDataCache();
                 currentlyPaused = true;
@@ -465,7 +555,7 @@ namespace debugger
                 e.PauseInfo = readDebugPauseInfo(rdr);
                 PausedEvent.Invoke(null, e);
             }
-            else if (cmd == PacketCmdReadMemRes)
+            else if (cmd == PacketCmd.ReadMemRes)
             {
                 var address = rdr.ReadUInt32();
                 var numBytes = rdr.ReadUInt64();
@@ -480,7 +570,7 @@ namespace debugger
                     page.waiters.Clear();
                 }
             }
-            else if (cmd == PacketCmdDisasmRes)
+            else if (cmd == PacketCmd.DisasmRes)
             {
                 var address = rdr.ReadUInt32();
                 var numInstrs = rdr.ReadUInt64();
@@ -499,7 +589,7 @@ namespace debugger
                     page.waiters.Clear();
                 }
             }
-            else if (cmd == PacketCmdGetTraceRes)
+            else if (cmd == PacketCmd.GetTraceRes)
             {
                 var e = new GetTraceEventArgs();
 
@@ -545,13 +635,13 @@ namespace debugger
         }
 
         public delegate void PacketBuilder(BinaryWriter wrt);
-        public static void SendPacket(ushort cmd, ushort reqId, PacketBuilder fn)
+        public static void SendPacket(PacketCmd cmd, ushort reqId, PacketBuilder fn)
         {
             var ms = new MemoryStream();
             var wrt = new BinaryWriter(ms);
 
             wrt.Write((uint)ms.Length);
-            wrt.Write(cmd);
+            wrt.Write((ushort)cmd);
             wrt.Write(reqId);
 
             if (fn != null)
@@ -567,7 +657,7 @@ namespace debugger
 
         public static void SendAddBreakpoint(uint address, uint userData)
         {
-            SendPacket(PacketCmdAddBreakpoint, 0, (BinaryWriter wrt) =>
+            SendPacket(PacketCmd.AddBreakpoint, 0, (BinaryWriter wrt) =>
             {
                 wrt.Write(address);
                 wrt.Write(userData);
@@ -576,7 +666,7 @@ namespace debugger
 
         public static void SendRemoveBreakpoint(uint address)
         {
-            SendPacket(PacketCmdRemoveBreakpoint, 0, (BinaryWriter wrt) =>
+            SendPacket(PacketCmd.RemoveBreakpoint, 0, (BinaryWriter wrt) =>
             {
                 wrt.Write(address);
             });
@@ -584,18 +674,18 @@ namespace debugger
 
         public static void SendPause()
         {
-            SendPacket(PacketCmdPause, 0, null);
+            SendPacket(PacketCmd.Pause, 0, null);
         }
 
         public static void SendResume()
         {
-            SendPacket(PacketCmdResume, 0, null);
+            SendPacket(PacketCmd.Resume, 0, null);
             currentlyPaused = false;
         }
     
         public static void SendStepCore(uint coreId)
         {
-            SendPacket(PacketCmdStepCore, 0, (BinaryWriter wrt) =>
+            SendPacket(PacketCmd.StepCore, 0, (BinaryWriter wrt) =>
             {
                 wrt.Write(coreId);
             });
@@ -604,7 +694,7 @@ namespace debugger
 
         public static void SendGetTrace(uint threadId)
         {
-            SendPacket(PacketCmdGetTrace, 0, (BinaryWriter wrt) =>
+            SendPacket(PacketCmd.GetTrace, 0, (BinaryWriter wrt) =>
             {
                 wrt.Write(threadId);
             });
@@ -615,7 +705,7 @@ namespace debugger
         private static void sendReadMem(uint address, uint size)
         {
             Debug.WriteLine("ReadMem {0:x08} {1}", address, size);
-            SendPacket(PacketCmdReadMem, 0, (BinaryWriter wrt) =>
+            SendPacket(PacketCmd.ReadMem, 0, (BinaryWriter wrt) =>
             {
                 wrt.Write(address);
                 wrt.Write(size);
@@ -625,7 +715,7 @@ namespace debugger
         private static void sendDisasm(uint address, uint numInstrs)
         {
             Debug.WriteLine("Disasm {0:x08} {1}", address, numInstrs);
-            SendPacket(PacketCmdDisasm, 0, (BinaryWriter wrt) =>
+            SendPacket(PacketCmd.Disasm, 0, (BinaryWriter wrt) =>
             {
                 wrt.Write(address);
                 wrt.Write(numInstrs);
