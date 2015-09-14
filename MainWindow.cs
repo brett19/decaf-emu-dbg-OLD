@@ -11,6 +11,7 @@ namespace debugger
         public ModulesView modView = null;
         public ThreadsView thrdView = null;
         public StackView stackView = null;
+        public MemoryView memView = null;
 
         public MainWindow()
         {
@@ -48,10 +49,14 @@ namespace debugger
             stackView.MdiParent = this;
             stackView.FormClosing += MainWindow_FormClosing;
 
+            memView = new MemoryView();
+            memView.MdiParent = this;
+            memView.FormClosing += MainWindow_FormClosing;
+
             assemblyToolStripMenuItem.Checked = true;
             registersToolStripMenuItem.Checked = true;
-            threadsToolStripMenuItem.Checked = true;
             stackToolStripMenuItem.Checked = true;
+            memoryToolStripMenuItem.Checked = true;
 
             int parentWidth = this.ClientSize.Width - 4;
             int parentHeight = this.ClientSize.Height - 60;
@@ -65,15 +70,15 @@ namespace debugger
             asmView.Width = parentWidth - regView.Width;
             asmView.Height = parentHeight / 3 * 2;
 
-            thrdView.Left = 0;
-            thrdView.Top = asmView.Height;
-            thrdView.Width = asmView.Width;
-            thrdView.Height = parentHeight - asmView.Height;
+            memView.Left = 0;
+            memView.Top = asmView.Height;
+            memView.Width = asmView.Width;
+            memView.Height = parentHeight - asmView.Height;
 
             stackView.Left = regView.Left;
-            stackView.Top = thrdView.Top;
+            stackView.Top = memView.Top;
             stackView.Width = regView.Width;
-            stackView.Height = thrdView.Height;
+            stackView.Height = memView.Height;
         }
 
         private DebugTraceEntry[] TraceEntries = null;
@@ -213,6 +218,7 @@ namespace debugger
                 thrdView.Enabled = false;
                 asmView.UpdateData(PauseInfo, TraceActiveThread);
                 regView.UpdateData(PauseInfo, TraceActiveThread);
+                memView.Enabled = false;
                 stackView.Enabled = false;
             } else
             {
@@ -220,6 +226,7 @@ namespace debugger
                 thrdView.UpdateData(PauseInfo, ActiveThread);
                 asmView.UpdateData(PauseInfo, ActiveThread);
                 regView.UpdateData(PauseInfo, ActiveThread);
+                memView.UpdateData(PauseInfo, ActiveThread);
                 stackView.UpdateData(PauseInfo, ActiveThread);
             }
         }
@@ -236,6 +243,7 @@ namespace debugger
             }
             
             UpdatePauseInfo();
+            asmView.Focus();
         }
 
         public void SetActiveThreadIdx(int threadIdx)
@@ -248,8 +256,13 @@ namespace debugger
         {
             this.BeginInvoke((MethodInvoker)delegate {
                 statusLabel.Text = "Connected.  BpHit.";
-
+                
                 UpdatePauseInfo(e.PauseInfo, e.coreId);
+
+                if (e.userData == 0xFFFFFFFF)
+                {
+                    NetHandler.SendRemoveBreakpoint(ActiveThread.cia);
+                }
             });
         }
 
@@ -309,9 +322,21 @@ namespace debugger
 
         private void stepIntoToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (ActiveThread.curCoreId >= 0)
+            if (ActiveThread != null && ActiveThread.curCoreId >= 0)
             {
                 NetHandler.SendStepCore((uint)ActiveThread.curCoreId);
+            }
+            else
+            {
+                MessageBox.Show("Cannot step current thread as it is not active on any core.");
+            }
+        }
+
+        private void stepOverToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (ActiveThread != null && ActiveThread.curCoreId >= 0)
+            {
+                NetHandler.SendStepCoreOver((uint)ActiveThread.curCoreId);
             }
             else
             {
@@ -369,7 +394,14 @@ namespace debugger
 
         private void memoryToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-
+            if (memoryToolStripMenuItem.Checked)
+            {
+                memView.Show();
+            }
+            else
+            {
+                memView.Hide();
+            }
         }
 
         private void stackToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
@@ -396,7 +428,6 @@ namespace debugger
                 NetHandler.SendGetTrace(ActiveThread.id);
             }
         }
-
 
     }
 }

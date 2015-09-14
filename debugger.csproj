@@ -45,17 +45,31 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="EmuMemoryView.cs" />
     <Compile Include="AssemblyView.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="AssemblyView.Designer.cs">
       <DependentUpon>AssemblyView.cs</DependentUpon>
     </Compile>
+    <Compile Include="EmuDebugManager.cs" />
     <Compile Include="MainWindow.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainWindow.Designer.cs">
       <DependentUpon>MainWindow.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MemoryControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="MemoryView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MemoryView.Designer.cs">
+      <DependentUpon>MemoryView.cs</DependentUpon>
     </Compile>
     <Compile Include="ModulesView.cs">
       <SubType>Form</SubType>
@@ -72,6 +86,9 @@
     <Compile Include="RegisterView.Designer.cs">
       <DependentUpon>RegisterView.cs</DependentUpon>
     </Compile>
+    <Compile Include="StackControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="StackView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -84,11 +101,26 @@
     <Compile Include="ThreadsView.Designer.cs">
       <DependentUpon>ThreadsView.cs</DependentUpon>
     </Compile>
+    <Compile Include="EmuMemoryControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="EmuMemoryControl.Designer.cs">
+      <DependentUpon>EmuMemoryControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="WheelVScrollBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <EmbeddedResource Include="AssemblyControl.resx">
+      <DependentUpon>AssemblyControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="AssemblyView.resx">
       <DependentUpon>AssemblyView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainWindow.resx">
       <DependentUpon>MainWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MemoryView.resx">
+      <DependentUpon>MemoryView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ModulesView.resx">
       <DependentUpon>ModulesView.cs</DependentUpon>
@@ -110,6 +142,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="ThreadsView.resx">
       <DependentUpon>ThreadsView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EmuMemoryControl.resx">
+      <DependentUpon>EmuMemoryControl.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

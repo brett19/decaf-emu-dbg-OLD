@@ -10,29 +10,29 @@ using System.Windows.Forms;
 
 namespace debugger
 {
-    public partial class StackView : Form
+    public partial class MemoryView : Form
     {
-        public StackView()
+        public MemoryView()
         {
             InitializeComponent();
 
-            stackDisp.DebugManager = new EmuDebugManager();
+            memDisp.DebugManager = new EmuDebugManager();
         }
-        
+
         public void UpdateData(DebugPauseInfo pauseInfo, DebugThreadInfo activeThread)
         {
-            stackDisp.DebugManager.UpdateData(pauseInfo, activeThread);
+            memDisp.DebugManager.UpdateData(pauseInfo, activeThread);
 
             if (activeThread != null)
             {
                 uint stackCurrent = activeThread.gpr[1];
-                stackDisp.DataView = stackDisp.DebugManager.CreateMemoryView(activeThread.stackEnd - 4, activeThread.stackStart);
-                stackDisp.ActiveAddress = stackCurrent;
-                stackDisp.JumpToAddress(stackCurrent);
-
-            } else
+                memDisp.DataView = memDisp.DebugManager.CreateMemoryView(0x00000000, 0x100000000);
+                memDisp.ActiveAddress = stackCurrent;
+                memDisp.JumpToAddress(stackCurrent);
+            }
+            else
             {
-                stackDisp.DataView = null;
+                memDisp.DataView = null;
             }
         }
     }

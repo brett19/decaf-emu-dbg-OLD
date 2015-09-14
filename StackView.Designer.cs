@@ -28,38 +28,43 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.scrollBar = new System.Windows.Forms.VScrollBar();
+            this.stackDisp = new debugger.StackControl();
             this.SuspendLayout();
             // 
-            // scrollBar
+            // stackDisp
             // 
-            this.scrollBar.Dock = System.Windows.Forms.DockStyle.Right;
-            this.scrollBar.Location = new System.Drawing.Point(314, 0);
-            this.scrollBar.Name = "scrollBar";
-            this.scrollBar.Size = new System.Drawing.Size(17, 221);
-            this.scrollBar.TabIndex = 1;
-            this.scrollBar.ValueChanged += new System.EventHandler(this.scrollBar_ValueChanged);
+            this.stackDisp.ActiveAddress = ((uint)(0u));
+            this.stackDisp.Address = ((uint)(0u));
+            this.stackDisp.AddressAlignment = ((uint)(4u));
+            this.stackDisp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(192)))), ((int)(((byte)(192)))));
+            this.stackDisp.DataView = null;
+            this.stackDisp.DebugManager = null;
+            this.stackDisp.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.stackDisp.Location = new System.Drawing.Point(0, 0);
+            this.stackDisp.MinimumSize = new System.Drawing.Size(200, 100);
+            this.stackDisp.Name = "stackDisp";
+            this.stackDisp.SelectedAddressEnd = ((uint)(0u));
+            this.stackDisp.SelectedAddressStart = ((uint)(0u));
+            this.stackDisp.Size = new System.Drawing.Size(502, 339);
+            this.stackDisp.SizePerLine = ((uint)(4u));
+            this.stackDisp.TabIndex = 2;
             // 
             // StackView
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 11F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(331, 221);
-            this.Controls.Add(this.scrollBar);
+            this.ClientSize = new System.Drawing.Size(502, 339);
+            this.Controls.Add(this.stackDisp);
             this.DoubleBuffered = true;
             this.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
             this.Name = "StackView";
             this.Text = "Stack";
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.Stack_Paint);
-            this.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.StackView_MouseWheel);
-            this.Resize += new System.EventHandler(this.StackView_Resize);
             this.ResumeLayout(false);
 
         }
 
         #endregion
-
-        private System.Windows.Forms.VScrollBar scrollBar;
+        private StackControl stackDisp;
     }
 }

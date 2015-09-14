@@ -130,7 +130,6 @@ namespace debugger
         LR,
         CTR,
         FPSCR,
-        Reserve,
         ReserveAddress,
         Max,
     }
@@ -208,6 +207,7 @@ namespace debugger
             Paused = 13,
             GetTrace = 14,
             GetTraceRes = 15,
+            StepCoreOver = 16,
         }
 
         public class StateObject
@@ -692,6 +692,15 @@ namespace debugger
             currentlyPaused = false;
         }
 
+        public static void SendStepCoreOver(uint coreId)
+        {
+            SendPacket(PacketCmd.StepCoreOver, 0, (BinaryWriter wrt) =>
+            {
+                wrt.Write(coreId);
+            });
+            currentlyPaused = false;
+        }
+
         public static void SendGetTrace(uint threadId)
         {
             SendPacket(PacketCmd.GetTrace, 0, (BinaryWriter wrt) =>
@@ -870,6 +879,26 @@ namespace debugger
 
                 currentPage = NetHandler.GetMemoryPage(newPageIdx, notifier);
                 currentPageIdx = newPageIdx;
+            }
+
+            public bool GetUint8(out byte value)
+            {
+                if (currentPage == null)
+                {
+                    value = 0;
+                    currentAddress += 1;
+                    retrievePage();
+                    return false;
+                }
+
+                int pageOffset = (int)(currentAddress - (currentPageIdx * pageSize));
+                Debug.Assert(pageOffset + 1 <= pageSize);
+
+                value = currentPage[pageOffset + 0];
+                currentAddress += 1;
+                retrievePage();
+
+                return true;
             }
 
             public bool GetUInt32(out uint value)
