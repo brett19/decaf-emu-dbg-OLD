@@ -22,7 +22,7 @@ namespace debugger
             if (!_breakpoints.Remove(bpAddress))
             {
                 _breakpoints.Add(bpAddress);
-                NetHandler.SendAddBreakpoint(bpAddress, 0);
+                NetHandler.SendAddBreakpoint(bpAddress);
             } else
             {
                 NetHandler.SendRemoveBreakpoint(bpAddress);

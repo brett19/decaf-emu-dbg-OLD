@@ -156,15 +156,9 @@ namespace debugger
 
     }
 
-    public class PrelaunchEventArgs : EventArgs
-    {
-        public DebugPauseInfo PauseInfo;
-    }
-
     public class BpHitEventArgs : EventArgs
     {
         public uint coreId;
-        public uint userData;
 
         public DebugPauseInfo PauseInfo;
     }
@@ -192,7 +186,6 @@ namespace debugger
     {
         public enum PacketCmd : ushort
         {
-            PreLaunch = 1,
             BpHit = 2,
             Pause = 3,
             Resume = 4,
@@ -516,23 +509,13 @@ namespace debugger
             var cmd = (PacketCmd)rdr.ReadUInt16();
             var reqId = rdr.ReadUInt16();
 
-            if (cmd == PacketCmd.PreLaunch)
-            {
-                ResetDataCache();
-                currentlyPaused = true;
-
-                var e = new PrelaunchEventArgs();
-                e.PauseInfo = readDebugPauseInfo(rdr);
-                PrelaunchEvent.Invoke(null, e);
-            }
-            else if (cmd == PacketCmd.BpHit)
+            if (cmd == PacketCmd.BpHit)
             {
                 ResetDataCache();
                 currentlyPaused = true;
 
                 var e = new BpHitEventArgs();
                 e.coreId = rdr.ReadUInt32();
-                e.userData = rdr.ReadUInt32();
                 e.PauseInfo = readDebugPauseInfo(rdr);
                 BpHitEvent.Invoke(null, e);
             }
@@ -561,14 +544,19 @@ namespace debugger
                 var numBytes = rdr.ReadUInt64();
                 var bytes = rdr.ReadBytes((int)numBytes);
 
+                cacheMutex.WaitOne();
+
                 var pageIdx = address / GetMemoryPageSize();
                 var page = memDict[pageIdx];
                 if (page != null)
                 {
                     page.data = bytes;
-                    page.waiters.ForEach((DoneNotif i) => { i(); });
-                    page.waiters.Clear();
+                    var waiters = page.waiters;
+                    page.waiters = new List<DoneNotif>();
+                    waiters.ForEach((DoneNotif i) => { i(); });
                 }
+
+                cacheMutex.ReleaseMutex();
             }
             else if (cmd == PacketCmd.DisasmRes)
             {
@@ -580,14 +568,19 @@ namespace debugger
                     instrs[i] = readString(rdr);
                 }
 
+                cacheMutex.WaitOne();
+
                 var pageIdx = address / GetInstrPageSize();
                 var page = instrDict[pageIdx];
                 if (page != null)
                 {
                     page.data = instrs;
-                    page.waiters.ForEach((DoneNotif i) => { i(); });
-                    page.waiters.Clear();
+                    var waiters = page.waiters;
+                    page.waiters = new List<DoneNotif>();
+                    waiters.ForEach((DoneNotif i) => { i(); });
                 }
+
+                cacheMutex.ReleaseMutex();
             }
             else if (cmd == PacketCmd.GetTraceRes)
             {
@@ -601,7 +594,7 @@ namespace debugger
                 {
                     e.Info[i] = readDebugTraceEntry(rdr);
                 }
-
+                
                 GetTraceEvent.Invoke(null, e);
             }
             else
@@ -655,12 +648,11 @@ namespace debugger
             Send(currentState.workSocket, ms.ToArray());
         }
 
-        public static void SendAddBreakpoint(uint address, uint userData)
+        public static void SendAddBreakpoint(uint address)
         {
             SendPacket(PacketCmd.AddBreakpoint, 0, (BinaryWriter wrt) =>
             {
                 wrt.Write(address);
-                wrt.Write(userData);
             });
         }
 
@@ -983,7 +975,6 @@ namespace debugger
 
         public static event EventHandler<ConnectedEventArgs> ConnectedEvent;
         public static event EventHandler<DisconnectedEventArgs> DisconnectedEvent;
-        public static event EventHandler<PrelaunchEventArgs> PrelaunchEvent;
         public static event EventHandler<BpHitEventArgs> BpHitEvent;
         public static event EventHandler<CoreSteppedEventArgs> CoreSteppedEvent;
         public static event EventHandler<PausedEventArgs> PausedEvent;

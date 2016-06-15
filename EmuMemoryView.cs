@@ -31,7 +31,10 @@ namespace debugger
 
         private void NewReaderData()
         {
-            DataChanged.Invoke(this, new EventArgs());
+            if (DataChanged != null)
+            {
+                DataChanged.Invoke(this, new EventArgs());
+            }
         }
 
         public bool GetInstruction(out uint data, out string disasm)

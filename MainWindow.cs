@@ -22,7 +22,6 @@ namespace debugger
         {
             NetHandler.ConnectedEvent += NetHandler_ConnectedEvent;
             NetHandler.DisconnectedEvent += NetHandler_DisconnectedEvent;
-            NetHandler.PrelaunchEvent += NetHandler_PrelaunchEvent;
             NetHandler.BpHitEvent += NetHandler_BpHitEvent;
             NetHandler.CoreSteppedEvent += NetHandler_CoreSteppedEvent;
             NetHandler.PausedEvent += NetHandler_PausedEvent;
@@ -177,21 +176,6 @@ namespace debugger
             });
         }
 
-        private void NetHandler_PrelaunchEvent(object sender, PrelaunchEventArgs e)
-        {
-            this.BeginInvoke((MethodInvoker)delegate
-            {
-                statusLabel.Text = "Connected.  Prelaunch.";
-
-                var pauseInfo = e.PauseInfo;
-                var userModule = pauseInfo.modules[pauseInfo.userModuleIdx];
-
-                // Add breakpoint at Entrypoint
-                NetHandler.SendAddBreakpoint(userModule.entryPoint, 0);
-                NetHandler.SendResume();
-            });
-        }
-
         private static DebugThreadInfo getActiveThread(DebugThreadInfo[] threads, uint coreId)
         {
             for (var i = 0; i < threads.Length; ++i)
@@ -259,10 +243,7 @@ namespace debugger
                 
                 UpdatePauseInfo(e.PauseInfo, e.coreId);
 
-                if (e.userData == 0xFFFFFFFF)
-                {
-                    NetHandler.SendRemoveBreakpoint(ActiveThread.cia);
-                }
+                // TODO: Remove Single Step breakpoints...
             });
         }
 

@@ -162,8 +162,7 @@ namespace debugger
                         if (sym != null)
                         {
                             var symMod = this.DebugManager.GetModule(sym.moduleIdx);
-                            var modName = symMod.name.Substring(0, symMod.name.Length - 4);
-                            string symText = modName.ToUpper() + "." + sym.name;
+                            string symText = symMod.name + "." + sym.name;
                             comment = symText + " " + comment;
                         }
                     }

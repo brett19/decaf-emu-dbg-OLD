@@ -321,7 +321,10 @@ namespace debugger
 
         private void DataView_DataChanged(object sender, EventArgs e)
         {
-            Recache();
+            this.BeginInvoke((MethodInvoker)delegate
+            {
+                Recache();
+            });
         }
 
         private void scrollBar_ValueChanged(object sender, EventArgs e)

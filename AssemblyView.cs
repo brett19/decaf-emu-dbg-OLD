@@ -27,8 +27,11 @@ namespace debugger
             if (pauseInfo != null)
             {
                 assemblyDisp.DataView = assemblyDisp.DebugManager.CreateMemoryView(0x00000000, 0x100000000);
-                assemblyDisp.ActiveAddress = activeThread.cia;
-                assemblyDisp.JumpToAddress(activeThread.cia);
+                if (activeThread != null)
+                    assemblyDisp.ActiveAddress = activeThread.cia;
+                else
+                    assemblyDisp.ActiveAddress = pauseInfo.modules[pauseInfo.userModuleIdx].entryPoint;
+                assemblyDisp.JumpToAddress(assemblyDisp.ActiveAddress);
             } else
             {
                 assemblyDisp.DataView = null;
